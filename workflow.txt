@@ -1,0 +1,110 @@
+FRACTOL PROJECT 42 Barcelona
+
+This docuement is describing the workflow for the FRACTOL project in 42 schools.
+
+You can find the project subject here: https://github.com/evgenkarlson/ALL_SCHOOL_42/blob/master/00_Projects__(%D0%9E%D1%81%D0%BD%D0%BE%D0%B2%D0%BD%D0%BE%D0%B5_%D0%9E%D0%B1%D1%83%D1%87%D0%B5%D0%BD%D0%B8%D0%B5)/03_Graphic/01____fractol_(ft_fractal)/fract-ol.pdf
+
+To complete these project, you will need to use de minilibX library, a simple X-Window (X11R6) programing API in C designed for students, making it suitable for beginners in X11 graphics programming. You can find more information in the MinilibX repository (https://github.com/42Paris/minilibx-linux/blob/master/README.md).
+The libreary will help you get started with creating projects that require graphic representation.
+
+In this case (fractol) you'll also need to understand the mathematical notion of complex numbers.
+You can find information about this concept anywere on the internet, but in my case it was very useful to see this video of Oceano which explains the concept and brings a basic and very well explained fractol project: https://www.youtube.com/watch?v=ANLW1zYbLcs.
+
+Now the subject requires you to:
+- Basic part:
+	- Offer Julia & Mandelbrot fractals
+	- Zoom in/out with your mouse wheel 
+	- Julia should recieve parameters to render different Julia fractal options
+	- One parameter of your program should be the fractal name, if it's not correct, program should show the parameters available and end correctly
+	- Use at least some colors to show fractal deepth
+	*Graphic part:
+	- Your program should show the image in a window
+	- Window management should be fluid (window change, minimizing, etc)
+	- ESC should close the window and end the program correctly
+	- Clicking on the "x" button on the window should also close the window and end the program correctly
+	- Usage of minilibX images is mandatory
+-Extra part:
+	- Include an extra fractal
+	- Zoom follows the mouse actual position
+	- Move the image with keyboard arrows
+	- Change color range
+
+
+Ok, I know it seems a lot, but let's dig in!
+
+Before starting with the program workflow, I'll shortly explain both the Makefile and fractol.h files.
+
+*MAKEFILE:
+
+In this project is important to decribe how the makefile is made because since you need to use a library and it is big (lots of files) you'll need to download the library and compile it on your makefile (you can't include it on your repo).
+
+	1 - Basic setup:
+	- NAME, SRCS & OBJS define the main program and list of source files (main.c, etc) with object files (.o) that will be generated.
+	- CFLAGS are set for compiler options (paths & warnings) while MLX_FLAGS specify linking operations needed by MinilibX (X11, etc)
+	2 - Key Rule (all):
+	- The all target ensures the library ($(MLX_LIB)) is prepared before building $(NAME). This guarantees MiniLibX is available to link against our project.
+	3 - Automatic MiniLibX Download and Compilation:
+	- The $(MLX_LIB) rule first checks if the minilibx-linux directory exists. If not, it clones the repository and runs make -C $(MLX_DIR), which compiles MiniLibX inside its directory.
+	- This setup is crucial since MiniLibX may not be present by default and automates both the download and compilation steps.
+	4 - Object and Dependancy Management:
+	- Each .o file is built with the rule %.o: %.c, using CFLAGS.
+	- Dependency files (.d) are generated and included with -include $(DEPS) to ensure incremental compilation: only changed files are recompiled.
+	5 - Cleaning Up:
+	- clean and fclean remove compiled objects and dependencies, with re for a full rebuild.
+
+*FRACTOL.H:
+
+In this file we'll include all libraries, macros, the data structures and non static functions for the program to run.
+
+	- Libraries:
+	stdlib.h -> for malloc()
+	unistd.h -> for write()
+	math.h	-> for abs()
+	X11/X	-> for X11 (X-Window)
+	X11/keysym -> for keybord events (keysym)
+	minilibx-linux/mlx.h -> for mlx functions
+
+	- Macros:
+	ERROR_MESSAGE -> error massage
+	WIDTH -> window width
+	HEIGHT -> window height
+
+	- Structures:
+		- s_complex -> to work with the real & imaginary part of complex
+		- s_img - > tandard to use mlx images
+		- s_fractal -> with all fractal data
+
+	- Needed functions for the program to run
+
+*MAIN.C:
+
+This is our main function that should be easy to read to know  what the program does.
+
+At the very beggining we declare a t_fractal data structure called fractal that will include all data needed for our fractals.
+
+If the argument count:
+
+	- Is 2 and the 1rst argv is "mandelbrot" or "burningship"
+	- Or is 4 and the 1st argv is "julia"
+		- Stablish the name attribute in fractal as argv 1
+		- Since Julia fractal accepts x & y values, we control it by stablishing fractal_y & x with argv 2 & 3
+		- Call fractal_init() with fractal address to initiate the fratal
+		- Call to fractal_render() with ftl add to render the fractal 
+		- Call to mlx_loop() with fractal mlx connection (created at fractal initiation) to keep the program listening for events
+
+Else:
+	- We write in the standard error the error message and exit the program with EXIT_FAILURE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
