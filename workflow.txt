@@ -1,13 +1,3 @@
-FRACTOL PROJECT 42 Barcelona
-
-This docuement is describing the workflow for the FRACTOL project in 42 schools.
-
-You can find the project subject here: https://github.com/evgenkarlson/ALL_SCHOOL_42/blob/master/00_Projects__(%D0%9E%D1%81%D0%BD%D0%BE%D0%B2%D0%BD%D0%BE%D0%B5_%D0%9E%D0%B1%D1%83%D1%87%D0%B5%D0%BD%D0%B8%D0%B5)/03_Graphic/01____fractol_(ft_fractal)/fract-ol.pdf
-
-To complete these project, you will need to use de minilibX library, a simple X-Window (X11R6) programing API in C designed for students, making it suitable for beginners in X11 graphics programming. You can find more information in the MinilibX repository (https://github.com/42Paris/minilibx-linux/blob/master/README.md).
-The libreary will help you get started with creating projects that require graphic representation.
-
-In this case (fractol) you'll also need to understand the mathematical notion of complex numbers.
 You can find information about this concept anywere on the internet, but in my case it was very useful to see this video of Oceano which explains the concept and brings a basic and very well explained fractol project: https://www.youtube.com/watch?v=ANLW1zYbLcs.
 
 Now the subject requires you to:
@@ -95,15 +85,690 @@ If the argument count:
 Else:
 	- We write in the standard error the error message and exit the program with EXIT_FAILURE.
 
+#include "fractol.h"
+//Para tests
+#include <stdio.h>
+
+int	main(int argc, char *argv[])
+{
+	t_fractal	fractal;
+
+	if ((argc == 2 && (!ft_strncmp(argv[1], "mandelbrot", 10)
+				||!ft_strncmp(argv[1], "burningship", 11)))
+		|| (argc == 4 && !ft_strncmp(argv[1], "julia", 5)))
+	{
+		fractal.name = argv[1];
+		if (!ft_strncmp(argv[1], "julia", 5))
+		{
+			fractal.julia_x = atodbl(argv[2]);
+			fractal.julia_y = atodbl(argv[3]);
+		}
+		fractal_init(&fractal);
+		fractal_render(&fractal);
+		mlx_loop(fractal.mlx_con);
+	}
+	else
+	{
+		ft_putstr_fd(ERROR_MESSAGE, STDERR_FILENO);
+		exit(EXIT_FAILURE);
+	}
+}
 
 
+*INIT.C:
+
+This file is to initiate the fractal (mlx connection, window, image), events (all hooks), and data (all data needed inside the fractal).
+
+- fractal_init:
+
+void	fractal_init(t_fractal *fractal)
+{
+	fractal->mlx_con = mlx_init();
+	if (fractal->mlx_con == NULL)
+		malloc_error();
+	fractal->mlx_win = mlx_new_window(fractal->mlx_con, WIDTH,
+			HEIGHT, fractal->name);
+	if (fractal->mlx_win == NULL)
+	{
+		mlx_destroy_display(fractal->mlx_con);
+		free(fractal->mlx_con);
+		malloc_error();
+	}
+	fractal->img.img_ptr = mlx_new_image(fractal->mlx_con, WIDTH, HEIGHT);
+	if (fractal->img.img_ptr == NULL)
+	{
+		mlx_destroy_window(fractal->mlx_con, fractal->mlx_win);
+		mlx_destroy_display(fractal->mlx_con);
+		free(fractal->mlx_con);
+		malloc_error();
+	}
+	fractal->img.pixels_ptr = mlx_get_data_addr(fractal->img.img_ptr,
+			&fractal->img.bpp, &fractal->img.line_len, &fractal->img.endian);
+	event_init(fractal);
+	data_init(fractal);
+}
+
+This function recieves a pointer to a t_fractal structure called fractal. 
+We initiate the mlx connection with the function mlx_init() and stablish it as the mlx_con property
+ont the fractal structure. We  protect it in case memory allocation fails(to protect it we use the
+malloc_error() function which prints a message on the standard error output and exits the program).
+
+Then we create a new mlx window with mlx_new_window() function & stablish it as mlx_win prop in
+the fractal_structure.
+This function recieves as arguments the mlx connection (1), window width & height (2, 3), and the
+window title (4).
+When we protect the memory allocation in this case we're going to need to use the 
+mlx_destroy_display() function (that recieves the mlx connection) and also free the mlx connection,
+and call the malloc_error() function.
+
+At this point, we want to use mlx images, so we create a new image with the mlx_new_image() function
+& stablish it as mlx_img_ptr inside the fractal structure.
+When we protect, since this is accumulative, we're going to need the mlx_destroy_window() function,
+(that recieves the mlx connection and the mlx window) the mlx_destroy_display() funciton, free the
+mlx connection & call the malloc_error() function.
+
+Finally, we use the mlx_get_data_addr() function & strablish it as the img.pixels_ptr property
+inside the fractal structure(That recieves the pointer to the image, the img (1) bits per pixel (2),
+the window line length (3) & the img endian (4).
+
+To complete the function we're going to call the event_init() & the data_init() function 
+(both recieve a pinter to the fractal).
+
+This are the mlx function prototypes just FYI:
+void	*mlx_init(void);
+int		mlx_destroy_display(void *mlx_ptr);
+void	*mlx_new_window(void *mlx_ptr, int size_x, int size_y, char *title);
+int		mlx_destroy_window(void *mlx_ptr, void *win_ptr);
+void	*mlx_new_image(void *mlx_ptr, int width, int height);
+char	*mlx_get_data_addr(void *img_ptr, int *bits_per_pixel, int *size_line, int *endian);
+
+- data_init():
+
+This function is to initialize all the necessary properties inside the fractal structure.
+We'll explain each one at the moment we need to understand them on the program execution.
+
+static void	data_init(t_fractal *fractal)
+{
+	fractal->escape_value = 4;
+	fractal->iterations_definition = 42;
+	fractal->shift_x = 0.0;
+	fractal->shift_y = 0.0;
+	fractal->zoom = 1.0;
+	fractal->color_s = 0x000000;
+	fractal->color_e = 0xFFFFFF;
+	fractal->color_f = 0xFF0000;
+	fractal->new_min = -2;
+	fractal->new_max = 2;
+	fractal->old_min = 0;
+	fractal->old_max = HEIGHT;
+}
+
+- event_init()
+
+this function is to make our program listen for events (keyword events, mouse events or window
+events.
+
+static void	event_init(t_fractal *fractal)
+{
+	mlx_hook(fractal->mlx_win, KeyPress, KeyPressMask, key_handler, fractal);
+	mlx_hook(fractal->mlx_win, ButtonPress, ButtonPressMask, mouse_handler,
+		fractal);
+	mlx_hook(fractal->mlx_win, DestroyNotify, StructureNotifyMask,
+		close_handler, fractal);
+}
+
+For the purpose to make our program/window to listen for user interaction, we need to create
+different hooks that will triger a reaction from our program.
+
+mlx_hook() function has this prototipe:
+	int	mlx_hook(void *win_ptr, int x_event, int x_mask, int (*funct_ptr)(), void *param);
+Recieves a pointer to the window, the type of event and mask, the function to execute the
+reaction and the data dat will be affected by it.
+
+The first hook is to listen for events in our keyboard, the second one for the mouse & the third
+one to close the window when clicking at the 'x' button in the window.
+
+*At this point of our program execution, we've initiated all needed four our fractar to be created
+but we still need to render it on the window.
+We could go to the events.c file because we already mentioned functions in it, but it's better
+to first understand how we render our fractal in the window and then explain the events.
+For this purpose, in our main function, we call the function fractal_render().
+
+*RENDER.C:
+
+This file is responsible of rendering the fractal in our window.
+
+The main function of this file is the fractal_render() function which recieves only a pointer
+to the fractal structure.
+
+- fractal_render:
+
+void	fractal_render(t_fractal *fractal)
+{
+	int	x;
+	int	y;
+
+	y = -1;
+	while (++y < HEIGHT)
+	{
+		x = -1;
+		while (++x < WIDTH)
+		{
+			handle_pixel(x, y, fractal);
+		}
+	}
+	mlx_put_image_to_window(fractal->mlx_con, fractal->mlx_win,
+		fractal->img.img_ptr, 0, 0);
+}
+
+This function initates the x & y coordenates and iterates through the window (double loop to paint
+every pixel, for each 'y' value (row), we're going to stablish a pixel for each 'x' value (column)),
+and at the end, we call the mlx_put_image_to_window() function to paint all the image and not pixel
+by pixel.
+The prototipe of this function is:
+	int mlx_put_image_to_window(void *mlx_ptr, void *win_ptr, void *img_ptr, int x, int y);
+
+	Parameters:
+		-mlx_ptr: Pointer to the MiniLibX connection, obtained from mlx_init. 
+		This connection manages the overall graphics context.
+
+		-win_ptr: Pointer to the window where the image will be displayed. 
+		This window is created using mlx_new_window.
+
+		-img_ptr: Pointer to the image to be displayed. 
+		This image should be created with mlx_new_image.
+
+		-x: The x-coordinate on the window where the image's top-left corner will be placed.
+
+		-y: The y-coordinate on the window where the image's top-left corner will be placed.
+
+	The function places the specified image on the window at the (x, y) position, using the 
+	upper-left corner of the image as the reference point.
+
+*If we follow the workflow on our program, the next function in this file that needs to be explained
+is the handle_pixel() function.
+This function is one of the most important functions in owr program because it enters in all the 
+mathematical logic and numerous functions needed to process the data and render it in the window.
+To follow the program I'm going to go inside every function needed while executing the function.
+Bare with me while I try to explain it as clear as posible.
+
+- handle_pixel():
+
+static void	handle_pixel(int x, int y, t_fractal *fractal)
+{
+	t_complex	z;
+	t_complex	c;
+	int			i;
+	int			color;
+
+	i = 0;
+	z.x = (map(x, fractal) * fractal->zoom) + fractal->shift_x;
+	z.y = (map(y, fractal) * fractal->zoom) + fractal->shift_y;
+	man_jul(&z, &c, fractal);
+	while (i < fractal->iterations_definition)
+	{
+		if (!ft_strncmp(fractal->name, "burningship", 11))
+			burning_ship_iter(&z, &c);
+		else
+			z = sum_complex(square_complex(z), c);
+		if ((z.x * z.x) + (z.y * z.y) > fractal->escape_value)
+		{
+			color = map_iterations_to_color(fractal, i);
+			my_pixel_put(x, y, &fractal->img, color);
+			return ;
+		}
+		++i;
+	}
+	my_pixel_put(x, y, &fractal->img, fractal->color_f);
+}
+
+This function is responsible of calculate & define the color in each pixel of the image depending
+on the fractal that we want to render. It also takes the coordinates 'x' & 'y' in the window to
+render the fractal corretly in its position and scale.
+
+1- Initialize 'z' & 'c':
+
+'z' & 'c' are complex numbers. 'Z' is used to ireate and change in each cicle, while 'C' is the 
+initial value for the actual fractal point.
+
+'i' is an iteration counter used to calculate the 'depth' or visual complexity of each point.
+
+2- Maping 'x' & 'y' to complex values 'z':
+
+The map function scales each pixel coordinates (x, y) to complex values.
+This function converts a value whith an speciphyc range of pixels in window, to another one that
+represents the complex values scale of the fractal. 
+
+	double map(double unscaled_num, t_fractal *fractal)
+	{
+		return ((fractal->new_max - fractal->new_min) * (unscaled_num
+				- fractal->old_min) / (fractal->old_max - fractal->old_min)
+			+ fractal->new_min);
+	}
+
+This is a complex step for those who are not familiarized with mathematics (like me), so I recommend
+you to whatch all this video (https://www.youtube.com/watch?v=ANLW1zYbLcs) and this speciphyc scale
+function is explained at the 58min.
+Basicaly, we need this function because each fractal has a range of values inside of it (this means
+that if we introduce this numbers as values for the fractal function, the result won't tend to
+infinity).
+
+Since we haven't entered in math theory until now lets apply the 'ELI5' (explain me like I'm 5)
+principle to understand what a fractal is with the Mandelbrot case.
+
+Imagine you have a big drawing board, and you want to create a special picture using little dots.
+Each dot follows a simple rule to decide if it should stay on the board to form part of the 
+picture or disappear.
+
+For a fractal like the Mandelbrot set, each dot starts in a specific place on the board. 
+Then, it follows some special rules of multiplying and adding numbers over and over again.
+If, after many times repeating this rule, the dot stays close to where it started,
+we say it’s part of the Mandelbrot set, so we color it dark. But if the dot starts to fly away
+from the board, it’s not part of the picture, and we color it differently.
+
+When we repeat this process with lots of dots on the board, each following its own path, 
+they together make a complex, detailed pattern. The amazing part is that if you zoom in or out, 
+the pattern looks similar! It’s like magic math that turns a simple rule into a super-detailed 
+picture full of tiny patterns and shapes.
+
+!!Before starting it'll be useful to know that a complex number is:
+
+	An extension of the number you arleady know but it has a "real" part and an "imaginary" part.
+	The real part is exatly as any other number but the imaginary part includes a special unit
+	called 'i' (imaginary) that allow as to work with negative squares (not posible in the world
+	of real numbers).
+	A complex number 'z':
+		z = a + bi --> z = 4 +2i --> 'a' is the real part, 'b' is the imaginary part.
+	(I know you're going crazy but no worries, the most important part of all this is that in the
+	world of complex numbers, the square of i equals -1: i*i = -1 --> i^2 = -1).
+
+For the mandelbrot case, the function (special rules) is:
+
+	z = z^2 + c
+
+And lets say we're evaluating the point (-1, 0i)
+
+Here z represents the actual value.
+And c represents the point we're evaluating.
+
+Lets do some iterations to understand it.
+*Since for Mandelbrot z initiates at 0 --> z0 = 0;
+So we can say thata Z in position 0 is equal to 0;
+
+1rst iteration:
+
+z0 = 0;
+z1 = 0^2 + c --> so the new z value is simply c.
+z1 = z0^2 + c --> z1 = (-1, 0i);
+
+2nd iteration:
+
+z2 = z1^2 + (-1, 0i)
+*In complex numbers, i^2 = -1 (IMPORTANT RULE FOR COMPLEX NUMBERS)
+
+z2 = (-1, 0i) * (-1, 0i) + (-1, 0i);
+Lets explain the z^2 part:
+	(-1 * -1) + (-1 * 0i) + (0i * -1) + (0i * 0i)
+	1 + 0i + 0i + 0i^2
+	1 + 0i
+Now lets add the 'c':
+	z2 = 1 + 0i + (-1 + 0i) = (1 - 1) + 0i = (0, 0i)
+
+3rd iteration:
+
+z3 = z2^2 + (-1, 0i);
+
+z3 = (0, 0i) * (0, 0i) + (-1, 0i);
+
+z3 = 0 + (-1, 0i) = (-1, 0i);
+
+*We're always on the same rank, ((0, 0i) & (-1, 0i) and this means that THIS POINT is part of THE
+MANDELBROT fractal (is inside its range);
+
+**Now lets try one more point to test a point that tends to infinite.
+The point (4, 5i):
+
+z1 = (4, 5i);
+
+z2 = (4, 5i) * (4, 5i) + (4, 5i) --> (16 + 20i + 20i + 25i^2) + (4, 5i)
+z2 = (16 + 40i -25) + (4, 5i) = -9 + 40i + (4, 5i) = (-5, 45i);
+
+z3 = (-5, 45i) * (-5 *45i) + (4, 5i) --> (25 - 225i -225i - 2025) + (4, 5i)
+z3 = (-2000 -450i) + (4, 5i) = (-1996, -445i);
+
+z4 = (3785995, 1776445i)
+z5 tends to infinite.
+
+You can use this page to test mandelbrot with different values & validate your calculs: https://www.geogebra.org/m/mfewjrek
+
+**This part is not essential to understand the workflow, just explains the same we just saw for the
+Julia & Burninship fractal which are the other two fractals on the program**
+
+JULIA --> Zn+1 = Zn^2 + C
+
+Case of:
+	Z0 = (0, 0i);
+	C = (-1, 0i);
+
+Z1 = Z0^2 + C = (0 + 0i)^2 + (-1 + 0i) = 0 + (-1 + 0i) = (-1, +0i)
+Z2 = Z1^2 + (-1 + 0i) = (-1 +0i)^2 + (-1 + 0i) = (1 + 0i) + (-1 +0i) = (0 , 0i);
+Z3 = Z2^2 + (-1 + 0i) = (0 + 0i)^2 + (-1 +0i) = 0 + (-1 +0i) = (-1 , 0i);
+
+BURNINGSHIP --> Zn+1 = (|Zn|^2 + C) + i *(2 * |Zn| * Im(Zn))
+*|'x'| --> absolute value of 'x'
+*Im('x') --> imaginary part of 'x' (the part that includes 'i')
+
+Case of:
+	Z0 = (0, 0i);
+	C = (-1, 0i);
+
+Z1 = (|Z0|^2 + C) + i * (2*|Z0| * Im(Z0))
+	Calculate |Z0|^2 --> |Z0|^2 = 0
+	"" Im(Z0) --> Im(Z0) = 0
+Z1 = (0 + (-1 +0i)) + i*(2*0) = -1 + 0i;
+
+Z2 
+Z2 = (1+(-1+0i))+i*(2*1*0)= (0 ,0i); 
+Z3 = (0+(-1+0i))+i*(2*0)= (-1, 0i);
+
+**The important point here is that these 3 fractals (Mandelbrot, Julia & Burninship) share a similar
+range, this is why we decided to convine them.
+
+Now that we explained a bit of mathemathical theory, we can continue with the map function.
+In this case, when we initialize the fractal data (with data_init() function), we stablish these
+fractal properties (among others, these are the importants for this part):
+
+fractal->new_min = -2;
+fractal->new_max = 2;
+fractal->old_min = 0;
+fractal->old_max = HEIGHT;
+
+We do this because we want to scale the image, what used to be our min(smallest point on the window)
+is now -2 and what used to be our max (HEIGHT) is now 2:
+
+0,0					WIDTH,0
++-------------------+
+|                   |
+|         |         |
+|         |         |
+|---------+---------|
+|         |         |
+|         |         |
+|                   |
++-------------------+HEIGHT,WIDTH
+0, HEIGHT
+
+-2,2				2,2
++-------------------+
+|                   |
+|         |         |
+|         |         |
+|---------+---------|
+|         |         |
+|         |         |
+|                   |
++-------------------+
+-2,-2				2,-2
+
+*Lets remember that we were inside the handle_pixel() function and we were stablishing the x & y
+coordinate for the complex number z:
+
+	z.x = (map(x, fractal) * fractal->zoom) + fractal->shift_x;
+	z.y = (map(y, fractal) * fractal->zoom) + fractal->shift_y;
+
+Since we want to introduce 2 functionalities:
+	-Zoom with mouse
+	-move the fractal with keyboard arrows
+In the data_init() function we also initate the fractal->zoom and fractal->shift_x/y properties in
+the fractal structure:
+	fractal->shift_x = 0.0;
+	fractal->shift_y = 0.0;
+	fractal->zoom = 1.0;
+And when we stablish the 'x' & 'y' coordenate of the complex number 'z', we're going to multiply
+it by its property zoom (initially at 1.0) and add its shift (initiallly 0.0 for both x & y).
+
+Next step in the function is the call to man_jul() function, which is only because in the Mandelbrot
+& Burningship fractals, the value of 'c' changes with each iteration, but in Julia not. 
+In Julia, we stablish the value of 'c' by passing 2 more arguments when we execute the program 
+(the 1st argument will refer to the real part of the point & the 2nd to the imaginary part 
+--> -1, 0.5i for example).
+In the same case of "julia", we also need to invert the 'y' axis to represent the fractal corretly.
+
+Now we'll get inside of the main loop in the function (while):
+
+	while (i < fractal->iterations_definition)
+	{
+		if (!ft_strncmp(fractal->name, "burningship", 11))
+			burning_ship_iter(&z, &c);
+		else
+			z = sum_complex(square_complex(z), c);
+		if ((z.x * z.x) + (z.y * z.y) > fractal->escape_value)
+		{
+			color = map_iterations_to_color(fractal, i);
+			my_pixel_put(x, y, &fractal->img, color);
+			return ;
+		}
+		++i;
+	}
+
+This loop is to color the window with diferent colors for each iterations.
+Also in our data_init() function, we stablished fractal->iterations_definition at 42:
+		fractal->iterations_definition = 42;
+
+This value sets the number of iterations we want to "paint in the window"
+The loop will be executed as many times as the iterations_definition is set & it will:
+
+If the fractal->name equals to 'burninship' (we passed it as argument on program execution):
+	We'll call the burning_ship_iter() function passing the address of 'z' & 'c'.
+
+	-burning_ship_iter():
+
+		This function uses the fabs() function of the math.h library to stablish z->x & z->y as
+		its absolute values (because the BS fractal function requires it).
+		Then stablishes z as sum_complex(square_complex(z), c);
+		*If you remember the functions for our 3 fractals, this is its basic structure
+		(z = z^2 + c)
+
+Else if (Julia & Mandelbrot cases) it just stablish z as sum_complex(square_complex(z), c).
+
+Lets dig in this two functions:
+
+- square_complex():
+
+	*To replicate the logic we already explained:
+
+	(x_real + y_imaginary)^2 --> we want to reproduce this
+	(x + yi) * (x +yi);
+	(x * x) + (x*yi) + (yi*x) + (yi*yi);
+	x^2 + xyi + xyi + y^2i^2; --> remember that i^2 = -1
+	x^2 + 2xyi - y^2;		  --> real & imaginary part are mixed
+	(x^2 - y^2) + 2xyi		  --> real part & i part separated
+	REAL --> (x^2 - y^2)
+	IMAG --> 2*x*y			 --> remember that i is just a unit mesure
+
+	*This coded would look like this:
+
+	t_complex	square_complex(t_complex z)
+	{
+		t_complex	result;
+
+		result.x = (z.x * z.x) - (z.y * z.y);		--> (x^2 - y^2)
+		result.y = 2 * z.x * z.y;					--> 2 * x * y
+		return (result);
+	}
+
+- sum_complex():
+
+	*This function just adds the real parts and imaginary parts of 2 complex numbers.
+
+	t_complex	sum_complex(t_complex z1, t_complex z2)
+	{
+		t_complex	result;
+
+		result.x = z1.x + z2.x;
+		result.y = z1.y + z2.y;
+		return (result);
+	}
+
+*If you check it, the convination of these 2 functions will get us the famous:
+	z = z^2 + c --> z = sum_complex(square_complex(z) + c);
+
+*If ((z.x * z.x) + (z.y * z.y) > fractal->escape_value)
+
+This condition,verifies if the sum of the square values of a point is bigger to escape_value to
+set the limit on the range color. Since we already stablished that for these 3 fractals, the range
+is from -2 until 2, if we square both x & y values (we eliminate the negative value since
+x*x = x^2 and -x*-x = x^2).
+Since in data_init() we set up fractal->escape_value at 4, if the square of x + square of y is
+bigger than 4 (meaning the point is escaping to infinity), we won't enter here.
+
+For each iteration that is outside of the fractal and inside of the range, we're going to paint
+in different color.
+
+*Else (not realy an else but once the while loop has ended, we're going to paint in just one color.
+(in this case, color_f (final)).
+
+- map_iterations_to_color():
+
+unsigned int	map_iterations_to_color(t_fractal *fractal, int iteration)
+{
+	double			normalized_value;
+	unsigned int	color;
+
+	if (iteration < 0)
+		return (fractal->color_s);
+	else if (iteration >= fractal->iterations_definition)
+		return (fractal->color_e);
+	normalized_value = (double)iteration / fractal->iterations_definition;
+	color = (unsigned int)((1.0 - normalized_value) * fractal->color_s
+			+ normalized_value * fractal->color_e);
+	return (color);
+}
+
+This functions transforms the number of iterations of a point in a color using predefined values
+for the limits. This allows to visualize how fast one point goes away from the fractal creating 
+beautiful and complex graphic representations.
+
+The function recieves the fractal structure and the iteration in which we are.
+If the number of iterations is >= to iterations definition (meaning we're on the edge of the range)
+it sets normalized value as iterations / iterations_definition (this is to know its relative
+position according to the number of iterations defined), and uses the color hexadecimal value to
+create a new color.
+
+Example:
+
+color_s (start): 0x000000 (black color) that is 0 in hexadecimal
+color_e (end): 0xFFFFFF (white) that is 16777215 in hexadecimal
+iterations_definition: 100 (to make it easier)
+
+If we're in the 30th iteration:
+normalized_value = (100 / 30) = 0.3
+
+color = (unsigned int)((1.0 - 0.3) * 0 + 0.3 * 16777215);
+color = 0.7 * 0 + 0.3 * 16777215;
+color = 0.3 * 16777215 = 5033164 in hexadecimal whic is 0x4D4D4D (medium gray).
+
+Now that we understand almost all handle_pixel() function, we can go to the next step, the call to
+my_pixel_put() function that puts all the pixels in the image.
+
+- my_pixel_put():
+
+static void	my_pixel_put(int x, int y, t_img *img, int color)
+{
+	int	offset;
+
+	offset = (y * img->line_len) + (x * (img->bpp / 8));
+	*(unsigned int *)(img->pixels_ptr + offset) = color;
+}
+
+This function sets a pixel in an image buffer (similar to a white canvas) and gets the image ready
+to be sent.
+It recieves the 'x' & 'y' position of the pixel we want to paint, the pointer to the image (t_img 
+*img) and a color to paint.
+
+Offset calculation:
+	-We use the int offset to know where to paint. 
+
+x/y |   	0 		|		1		|		 2		|		3		|		4		|
+-------------------------------------------------------------------------------------
+ 0  | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 4 |  
+-------------------------------------------------------------------------------------
+ 1  | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 4 |  
+-------------------------------------------------------------------------------------
+ 2  | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 4 |  
+-------------------------------------------------------------------------------------
+ 3  | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 4 |  
+-------------------------------------------------------------------------------------
+ 4  | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 4 |  
+-------------------------------------------------------------------------------------
+
+Since we're using 32bpp (bits per pixel) that refers to true color with alpha channel (transpaency),
+when we look for the pixel to paint (32/8 = 4):
+
+	pixel (0,0) --> 0 * (4*5) + 0 * 4; --> for the first pixel the offset is 0
+	pixel (1,0) --> 0 * (4*5) + 1 * 4; --> for the 2nd pixel, the offset is 4 (first 1 in the table)
+	pixel (2,0) --> 0 * (4*5) + 2 * 4: --> OS for the 3rd pixel the OS is 8 (first 2 in the table)
+	...
+	pixel (1,3) --> 3 * (4*5) + 1 * 4; --> OS = 60 + 4 = 64;
+
+So we need this offset calculation to know where to paint the next pixel.
+Lets go to the second part: *(unsigned int *)(img->pixels_ptr + offset) = color;
+
+Since we have the pointer to the first pixel, what we need to do is to move the pointer to the next
+pixel to paint, this is why we add +offset.
+DEREFERENCE --> Use *(...) to dereference to acces the value on memory pointer (write color in mem)
+CASTING --> we use (unsigned int *)(...) because color is an int and we need a pointer to an int
 
 
+**IF we recall our position in the main function, we just initiated the fractal, render it and next
+step is mlx_loop() function that keeps the program/window listening for events.
+
+*EVENTS.C:
+
+Events are functions that listen to user interactions, for our program as we mentioned earlier,
+we'll listen from mouse & keyboard.
+
+- keyboard_handler():
+
+This function recieves the keysym (reference to the keyboard button), and fractal data.
+
+	-If the user clicks on 'escape' key we call the close_handler() function
+	close_handler destroys the image, the window, the display, frees the conection and exits
+
+	-If user clicks on arrows, we add the shift_x/y *fractal->zoom (we'll see it later)
+
+	-If user clicks on 'spacebar' (32 keysym) we call the change_colors(function)
+	change_colors() initiate a colors array & strablish fractal colors properties (frees colors)
+
+	Finaly we call fractal_render() function again to render the fractal with the modification
+	made by user.
+
+- mouse_handler():
+
+This function recieves the button clicked on mouse, x & y position for mouse pointer & fractal data.
+To implement the functionality of zoom that follows mouse (x,y) position, we need to:
+
+	-declare two new double variables for x,y (this will be captured from the event/click)
+	called mouse_x/y_fractal
+	-delcare zoom_factor & initialize it at 1
+	-stablish the position of x/y.
+
+If user clicks on button5 (mouse roler up) zoom_factor = 1.05;
+Else if user clics on butto4 (mouse roler down) zoom_factor = 0.95;
+Then we stablish fractal->zoom *= zoom factor;
+fractal_shift_x/y as mouse_x/y_fractal - fractal coordinates (needed to transform window coordinates
+in pixels to fractal coordinates).
+Call to fractal_render to render it again.
 
 
+**Whit this function, all the program is explained, you can check the COLORS.C file to understand
+how the colors array is initialized & colors needed functions.
+Also, the file S_UTILS.C which contains the ft_strncmp() function and atodlb() function that we use
+to compare strings and to convert asci values to dobles (to manage Julia fractal arguments to
+doubles).**
 
-
-
+Hope you enjoyed and understanded everything, don't hesitate to contact me for any help or further 
+explaination.
 
 
 

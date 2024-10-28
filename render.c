@@ -6,7 +6,7 @@
 /*   By: eriviere <eriviere@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/21 16:35:46 by eriviere          #+#    #+#             */
-/*   Updated: 2024/10/24 17:17:39 by eriviere         ###   ########.fr       */
+/*   Updated: 2024/10/28 16:57:03 by eriviere         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ static void	man_jul(t_complex *z, t_complex *c, t_fractal *fractal)
 	if (!ft_strncmp(fractal->name, "julia", 5))
 	{
 		c->x = fractal->julia_x;
-		c->y = fractal->julia_y;
+		c->y = -1 * (fractal->julia_y);
 	}
 	else
 	{
