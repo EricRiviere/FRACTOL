@@ -6,7 +6,7 @@
 /*   By: eriviere <eriviere@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/22 14:44:55 by eriviere          #+#    #+#             */
-/*   Updated: 2024/10/24 16:58:48 by eriviere         ###   ########.fr       */
+/*   Updated: 2024/10/29 10:33:00 by eriviere         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,13 +39,17 @@ int	key_handler(int keysym, t_fractal *fractal)
 	if (keysym == XK_Escape)
 		close_handler(fractal);
 	else if (keysym == XK_Left)
-		fractal->shift_x += (0.5 * fractal->zoom);
-	else if (keysym == XK_Right)
 		fractal->shift_x -= (0.5 * fractal->zoom);
+	else if (keysym == XK_Right)
+		fractal->shift_x += (0.5 * fractal->zoom);
 	else if (keysym == XK_Up)
 		fractal->shift_y -= (0.5 * fractal->zoom);
 	else if (keysym == XK_Down)
 		fractal->shift_y += (0.5 * fractal->zoom);
+	else if (keysym == 65453)
+		fractal->zoom *= 1.05;
+	else if (keysym == 65451)
+		fractal->zoom *= 0.95;
 	else if (keysym == XK_1)
 		fractal->iterations_definition += 10;
 	else if (keysym == XK_2)

@@ -6,7 +6,7 @@
 /*   By: eriviere <eriviere@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/21 14:23:05 by eriviere          #+#    #+#             */
-/*   Updated: 2024/10/24 17:24:09 by eriviere         ###   ########.fr       */
+/*   Updated: 2024/10/29 12:08:18 by eriviere         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 # include <X11/X.h>
 # include <X11/keysym.h>
 # include "minilibx-linux/mlx.h"
-# define ERROR_MESSAGE "params: mandelbrot/burninship/julia<n1><n2>\n"
+# define ERROR_MESSAGE "params: mandelbrot/burningship/julia<f1><f2>\n"
 # define WIDTH 800
 # define HEIGHT 800
 
@@ -77,6 +77,7 @@ int				ft_strncmp(char *s1, char *s2, int n);
 void			ft_putstr_fd(char *s, int fd);
 void			fractal_init(t_fractal *fractal);
 double			atodbl(char *s);
+int				is_double(char *s);
 
 //math utils
 double			map(double unscaled_num, t_fractal *fractal);

@@ -6,7 +6,7 @@
 /*   By: eriviere <eriviere@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/21 14:23:30 by eriviere          #+#    #+#             */
-/*   Updated: 2024/10/24 14:18:21 by eriviere         ###   ########.fr       */
+/*   Updated: 2024/10/29 12:09:15 by eriviere         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,8 @@ int	main(int argc, char *argv[])
 
 	if ((argc == 2 && (!ft_strncmp(argv[1], "mandelbrot", 10)
 				||!ft_strncmp(argv[1], "burningship", 11)))
-		|| (argc == 4 && !ft_strncmp(argv[1], "julia", 5)))
+		|| (argc == 4 && !ft_strncmp(argv[1], "julia", 5)
+			&& (is_double(argv[2]) && is_double(argv[3]))))
 	{
 		fractal.name = argv[1];
 		if (!ft_strncmp(argv[1], "julia", 5))

@@ -6,7 +6,7 @@
 /*   By: eriviere <eriviere@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/21 16:13:19 by eriviere          #+#    #+#             */
-/*   Updated: 2024/10/24 16:51:05 by eriviere         ###   ########.fr       */
+/*   Updated: 2024/10/29 12:12:21 by eriviere         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,8 @@ static void	malloc_error(void)
 
 static void	data_init(t_fractal *fractal)
 {
-	fractal->escape_value = 4;
-	fractal->iterations_definition = 42;
+	fractal->escape_value = 6;
+	fractal->iterations_definition = 20;
 	fractal->shift_x = 0.0;
 	fractal->shift_y = 0.0;
 	fractal->zoom = 1.0;
@@ -31,7 +31,7 @@ static void	data_init(t_fractal *fractal)
 	fractal->new_min = -2;
 	fractal->new_max = 2;
 	fractal->old_min = 0;
-	fractal->old_max = HEIGHT;
+	fractal->old_max = WIDTH;
 }
 
 static void	event_init(t_fractal *fractal)

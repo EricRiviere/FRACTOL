@@ -6,7 +6,7 @@
 /*   By: eriviere <eriviere@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/21 14:30:07 by eriviere          #+#    #+#             */
-/*   Updated: 2024/10/24 14:32:37 by eriviere         ###   ########.fr       */
+/*   Updated: 2024/10/29 12:09:01 by eriviere         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,4 +62,24 @@ double	atodbl(char *s)
 		fractional_part = fractional_part + (*s++ - '0') * pow;
 	}
 	return ((integer_part + fractional_part) * sign);
+}
+
+int	is_double(char *s)
+{
+	while (*s)
+	{
+		while ((*s >= 9 && *s <= 13) || *s == 32)
+			s++;
+		if (*s == '+' || *s == '-')
+			s++;
+		while (*s != '.' && (*s >= '0' && *s <= '9'))
+			s++;
+		if (*s == '.')
+			s++;
+		while (*s >= '0' && *s <= '9')
+			s++;
+		if (*s)
+			return (0);
+	}
+	return (1);
 }
