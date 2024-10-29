@@ -6,7 +6,7 @@
 #    By: eriviere <eriviere@student.42barcelon      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/10/22 12:56:31 by eriviere          #+#    #+#              #
-#    Updated: 2024/10/24 17:32:14 by eriviere         ###   ########.fr        #
+#    Updated: 2024/10/29 09:31:51 by eriviere         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -33,7 +33,7 @@ $(NAME): $(OBJS)
 	cc $(OBJS) $(MLX_FLAGS) -o $(NAME)
 
 # Compile objects
-%.o: %.c
+%.o: %.c fractol.h Makefile
 	cc $(CFLAGS) -c $< -o $@
 
 -include $(DEPS)
